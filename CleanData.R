@@ -20,6 +20,10 @@ data <- data %>%
     status = STATUS
   )
 
+data['gammaSum'] <- data['gamma2'] + data['gamma3'] + data['gamma4'] + data['gamma5'] + data['gamma6'] + data['gamma7'] + data['gamma8'] + data['gamma9']
+
+data <- data %>% relocate(gammaSum, .before = status)
+
 # exporting all raw data with renamed columns
 write.csv(data, "data/NE_LINCOLN_2008_2024.csv")
 
