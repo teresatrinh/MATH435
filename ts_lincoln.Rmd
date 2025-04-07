@@ -1,0 +1,859 @@
+---
+title: "gamma"
+output: pdf_document
+date: "2025-03-31"
+---
+```{r}
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(parallel)
+library(forecast)
+
+lincoln08 <- read_csv("NE_LINCOLN_2008.csv")
+plot.ts(lincoln08$`GAMMA COUNT RATE R02 (CPM)`) # plot time series over that year
+
+lincoln09 <- read_csv("NE_LINCOLN_2009.csv")
+plot.ts(lincoln09$`GAMMA COUNT RATE R02 (CPM)`)
+
+lincoln10 <- read_csv("NE_LINCOLN_2010.csv")
+lincoln11 <- read_csv("NE_LINCOLN_2011.csv")
+lincoln12 <- read_csv("NE_LINCOLN_2012.csv")
+lincoln13 <- read_csv("NE_LINCOLN_2013.csv")
+lincoln14 <- read_csv("NE_LINCOLN_2014.csv")
+lincoln15 <- read_csv("NE_LINCOLN_2015.csv")
+lincoln16 <- read_csv("NE_LINCOLN_2016.csv")
+lincoln17 <- read_csv("NE_LINCOLN_2017.csv")
+lincoln18 <- read_csv("NE_LINCOLN_2018.csv")
+lincoln19 <- read_csv("NE_LINCOLN_2019.csv")
+lincoln20 <- read_csv("NE_LINCOLN_2020.csv")
+lincoln21 <- read_csv("NE_LINCOLN_2021.csv")
+lincoln22 <- read_csv("NE_LINCOLN_2022.csv")
+lincoln23 <- read_csv("NE_LINCOLN_2023.csv")
+lincoln24 <- read_csv("NE_LINCOLN_2024.csv")
+lincoln25 <- read_csv("NE_LINCOLN_2025 (1).csv")
+
+```
+
+Combine data
+```{r}
+all_data <- bind_rows(lincoln08, lincoln09, lincoln10, lincoln11, lincoln12,
+                      lincoln13, lincoln14, lincoln15, lincoln16, lincoln17,
+                      lincoln18, lincoln19, lincoln20, lincoln21, lincoln22,
+                      lincoln23, lincoln24, lincoln25)
+head(all_data)
+
+
+plot.ts(all_data$`GAMMA COUNT RATE R02 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R02 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R03 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R03 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R04 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R04 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R05 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R05 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R06 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R06 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R07 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R07 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R08 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R08 (CPM)`)
+
+plot.ts(all_data$`GAMMA COUNT RATE R09 (CPM)`)
+summary(all_data$`GAMMA COUNT RATE R09 (CPM)`)
+
+plot.ts(all_data$`DOSE EQUIVALENT RATE (nSv/h)`)
+summary(all_data$`DOSE EQUIVALENT RATE (nSv/h)`)
+
+
+
+
+
+```
+
+
+
+
+
+
+
+R02
+```{r}
+# format collection time
+all_data$SAMPLE_COLLECTION_TIME <- as.POSIXct(all_data$`SAMPLE COLLECTION TIME`, format="%m/%d/%Y %H:%M:%S")
+
+gamma_column <- 'GAMMA COUNT RATE R02 (CPM)'
+
+# convert to time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R02 (CPM)`)
+
+
+#######
+```
+
+summary(gamma_forecast_stlf) output
+
+Method:
+STL + ETS(M,Ad,N)  
+- combination of seasonal and trend decomposition using Loess(STL) and Exponential Smoothing State Space Model (ETS)
+- M= multiplicative trend, Ad=additive seasonality, N=no error adjustment
+
+smoothign parameters
+alpha=0.9988, high which means model closely tracks most recent observations
+beta=0.3546, determines how much model respoinds to changes in trend
+phi=0.8, damping parameter, affects how much trend value is reduced over time
+
+Initial states:
+I=2962.83, initial level
+b=21.48, initial rate of change
+
+sigma = 0.0394,
+
+AIC=2577517
+BIC=2577575
+
+MSE=-0.0051, small bias in predictions, model slighly underpredicts on average
+RMSE=89.016
+MAE=47.434
+MASE=0.1742, want value closer to 1 for good model
+ACF1=0.1335, want value close to 0 meaning residuals aren't correlated
+
+Summary
+- low bias but high RMSE and MAE so might be considerable errors in forecast
+- model captures most of underlying patters in the data
+
+
+
+
+```{r}
+# R03
+
+gamma_column <- 'GAMMA COUNT RATE R03 (CPM)'
+
+# convert to time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R03 (CPM)`)
+
+```
+
+```{r}
+# R04
+
+gamma_column <- 'GAMMA COUNT RATE R04 (CPM)'
+
+# convert to time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R04 (CPM)`)
+
+```
+
+```{r}
+
+# R05
+
+gamma_column <- 'GAMMA COUNT RATE R05 (CPM)'
+
+# convert to time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R05 (CPM)`)
+
+```
+
+```{r}
+#######
+
+# R06
+
+gamma_column <- 'GAMMA COUNT RATE R06 (CPM)'
+
+# convert to time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R06 (CPM)`)
+
+
+```
+
+```{r}
+
+# R07
+
+gamma_column <- 'GAMMA COUNT RATE R07 (CPM)'
+
+# convert to  time series object (daily data)
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R07 (CPM)`)
+
+```
+
+```{r}
+#######
+
+# R08
+
+gamma_column <- 'GAMMA COUNT RATE R08 (CPM)'
+
+# convert to a time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R08 (CPM)`)
+
+
+```
+
+```{r}
+
+# R09
+
+gamma_column <- 'GAMMA COUNT RATE R09 (CPM)'
+
+# convert to  time series object (daily data)
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# fit the Seasonal and Trend decomposition using LOESS (stlf) model on the historical data (2008-2025)
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-03-26") - as.Date("2025-01-01"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+summary(gamma_forecast_stlf)
+
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+
+# plot forecast for first three months, plot actual 2025 data and
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"), 
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # Light red shaded area
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", "pink"), lty = c(1, 1), lwd = c(2, 5), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R09 (CPM)`)
+
+```
+
+```{r}
+# only dealing with data after 3/26 each year
+data_2024 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2024-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2025-01-01"))
+
+data_2023 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2023-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2024-01-01"))
+data_2022 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2022-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2023-01-01"))
+data_2021 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2021-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2022-01-01"))
+data_2020 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2020-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2021-01-01"))
+data_2019 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2019-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2020-01-01"))
+data_2018 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2018-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2019-01-01"))
+data_2017 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2017-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2018-01-01"))
+data_2016 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2016-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2017-01-01"))
+data_2015 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2015-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2016-01-01"))
+data_2014 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2014-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2015-01-01"))
+data_2013 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2013-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2014-01-01"))
+data_2012 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2012-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2013-01-01"))
+data_2011 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2011-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2012-01-01"))
+data_2010 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2010-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2011-01-01"))
+data_2009 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2009-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2010-01-01"))
+data_2008 <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2008-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2009-01-01"))
+
+
+plot(data_2008$SAMPLE_COLLECTION_TIME, data_2008$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2008")
+plot(data_2009$SAMPLE_COLLECTION_TIME, data_2009$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2009")
+plot(data_2010$SAMPLE_COLLECTION_TIME, data_2010$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2010")
+plot(data_2011$SAMPLE_COLLECTION_TIME, data_2011$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2011")
+plot(data_2012$SAMPLE_COLLECTION_TIME, data_2012$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2012")
+
+
+par(mfrow = c(2,3))
+plot(data_2013$SAMPLE_COLLECTION_TIME, data_2013$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2013")
+plot(data_2014$SAMPLE_COLLECTION_TIME, data_2014$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2014")
+plot(data_2015$SAMPLE_COLLECTION_TIME, data_2015$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2015")
+plot(data_2016$SAMPLE_COLLECTION_TIME, data_2016$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2016")
+plot(data_2017$SAMPLE_COLLECTION_TIME, data_2017$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2017")
+plot(data_2018$SAMPLE_COLLECTION_TIME, data_2018$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2018")
+
+
+par(mfrow = c(2,3))
+plot(data_2019$SAMPLE_COLLECTION_TIME, data_2019$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2019")
+plot(data_2020$SAMPLE_COLLECTION_TIME, data_2020$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2020")
+plot(data_2021$SAMPLE_COLLECTION_TIME, data_2021$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2021")
+plot(data_2022$SAMPLE_COLLECTION_TIME, data_2022$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2022")
+plot(data_2023$SAMPLE_COLLECTION_TIME, data_2023$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2023")
+# Create an empty plot for the year 2024 data
+plot(data_2024$SAMPLE_COLLECTION_TIME, data_2024$`GAMMA COUNT RATE R02 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R02 (CPM)", 
+     main = "R02 for 2024")
+
+
+
+```
+
+
+```{r}
+all_data # make sure has all years
+# convert collection time
+all_data$SAMPLE_COLLECTION_TIME <- as.POSIXct(all_data$`SAMPLE COLLECTION TIME`, format="%m/%d/%Y %H:%M:%S")
+
+# filter data for all years (2008 to 2024), and only for the months April to December
+data_filtered <- all_data %>%
+  filter(SAMPLE_COLLECTION_TIME >= as.POSIXct("2008-03-27") & SAMPLE_COLLECTION_TIME < as.POSIXct("2025-01-01")) %>%
+  mutate(Month = month(SAMPLE_COLLECTION_TIME), Year = year(SAMPLE_COLLECTION_TIME)) %>%
+  filter(Month >= 4 & Month <= 12)  # Only keep data from April to December
+
+plot(data_filtered$Month,data_filtered$`GAMMA COUNT RATE R02 (CPM)`)
+summary(data_filtered)
+
+```
+
+
+
+
+R03
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R03 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+
+par(mfrow = c(3,3))
+plot(data_2008$SAMPLE_COLLECTION_TIME, data_2008$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2008")
+plot(data_2009$SAMPLE_COLLECTION_TIME, data_2009$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2009")
+plot(data_2010$SAMPLE_COLLECTION_TIME, data_2010$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2010")
+plot(data_2011$SAMPLE_COLLECTION_TIME, data_2011$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2011")
+plot(data_2012$SAMPLE_COLLECTION_TIME, data_2012$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2012")
+plot(data_2013$SAMPLE_COLLECTION_TIME, data_2013$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2013")
+plot(data_2014$SAMPLE_COLLECTION_TIME, data_2014$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2014")
+plot(data_2015$SAMPLE_COLLECTION_TIME, data_2015$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2015")
+plot(data_2016$SAMPLE_COLLECTION_TIME, data_2016$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2016")
+
+par(mfrow = c(2,4))
+plot(data_2017$SAMPLE_COLLECTION_TIME, data_2017$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2017")
+plot(data_2018$SAMPLE_COLLECTION_TIME, data_2018$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2018")
+plot(data_2019$SAMPLE_COLLECTION_TIME, data_2019$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2019")
+plot(data_2020$SAMPLE_COLLECTION_TIME, data_2020$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2020")
+plot(data_2021$SAMPLE_COLLECTION_TIME, data_2021$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2021")
+plot(data_2022$SAMPLE_COLLECTION_TIME, data_2022$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2022")
+plot(data_2023$SAMPLE_COLLECTION_TIME, data_2023$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2023")
+# Create an empty plot for the year 2024 data
+plot(data_2024$SAMPLE_COLLECTION_TIME, data_2024$`GAMMA COUNT RATE R03 (CPM)`, 
+     type = "l", col = "blue", 
+     xlab = "Date", ylab = "R03 (CPM)", 
+     main = "R03 for 2024")
+
+
+```
+
+
+R04
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R04 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+```
+
+R05
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R05 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+```
+
+R06
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R06 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+```
+
+R07
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R07 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+```
+
+R08
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R08 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+```
+
+
+R09
+```{r}
+gamma_column <- 'GAMMA COUNT RATE R09 (CPM)'
+
+gamma_ts <- ts(all_data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+gamma_model_stlf <- stlf(gamma_ts)
+
+forecast_days <- as.integer(as.Date("2025-12-31") - as.Date("2025-03-27"))
+
+gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+
+forecast_dates <- seq(as.Date("2025-03-27"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+```
+
+
+```{r}
+gamma_columns <- c('GAMMA COUNT RATE R02 (CPM)', 'GAMMA COUNT RATE R03 (CPM)', 
+                   'GAMMA COUNT RATE R04 (CPM)', 'GAMMA COUNT RATE R05 (CPM)', 
+                   'GAMMA COUNT RATE R06 (CPM)', 'GAMMA COUNT RATE R07 (CPM)', 
+                   'GAMMA COUNT RATE R08 (CPM)', 'GAMMA COUNT RATE R09 (CPM)', 
+                   'DOSE EQUIVALENT RATE (nSv/h)')
+
+
+forecast_mean_values <- list()
+
+for (i in seq_along(gamma_columns)) {
+  gamma_ts <- ts(all_data[[gamma_columns[i]]], frequency = 365, start = c(2008, 1))
+
+  gamma_model_stlf <- stlf(gamma_ts)
+
+  forecast_days <- length(forecast_dates)
+  gamma_forecast_stlf <- forecast(gamma_model_stlf, h = forecast_days)
+  
+  forecast_mean_values[[i]] <- gamma_forecast_stlf$mean
+}
+
+all_forecasts <- unlist(forecast_mean_values)
+
+y_limits <- range(all_forecasts, na.rm = TRUE) 
+
+plot(forecast_dates, rep(NA, length(forecast_dates)), type = "n", 
+     xlab = "Date", ylab = "Gamma Count Rate (CPM)", 
+     main = "Forecast for Gamma Count Rates in 2025", 
+     ylim = y_limits)  # Set y-axis limits based on the forecast data
+
+colors <- c("blue", "green", "red", "purple", "orange", "brown", "pink", "cyan", 'black')
+
+for (i in seq_along(gamma_columns)) {
+  lines(forecast_dates, forecast_mean_values[[i]], col = colors[i], lwd = 2)
+}
+legend("topright", legend = gamma_columns, col = colors, lwd = 2, bty = "n", cex = 0.8)
+
+
+```
