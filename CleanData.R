@@ -28,6 +28,6 @@ data <- data %>% relocate(gammaSum, .before = status)
 write.csv(data, "data/NE_LINCOLN_2008_2024.csv")
 
 # removing data that does not have dose equivalent rate
-data <- drop_na(data)
+noNa <- drop_na(data)
 
-write.csv(data, "data/NE_LINCOLN_NO_NA.csv")
+write.csv(noNa, "data/NE_LINCOLN_NO_NA.csv")
