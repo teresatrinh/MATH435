@@ -1,0 +1,190 @@
+---
+title: "arima?"
+output: html_document
+date: "2025-04-15"
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(parallel)
+library(forecast)
+library(ggplot2)
+library(tidyr)
+
+
+data <- read_csv("NE_LINCOLN_2008_2024.csv")
+
+lincoln25 <- read_csv("NE_LINCOLN_2025 (1).csv")
+data$time <- as.POSIXct(data$time,format = "%m/%d/%Y %H:%M:%S")
+
+
+
+```
+
+Decomposition, arima model, forecast
+```{r}
+data <- data %>%
+  drop_na(gamma2)
+
+plot.ts(data$gamma2)
+
+ts_data <- ts(data$gamma2, 
+              start = c(2024), 
+              frequency = 12)
+
+# decompose time series
+ts_decomposition <- decompose(ts_data)
+
+plot(ts_decomposition)
+
+# ARIMA model
+arima_model <- auto.arima(ts_data, seasonal = TRUE)
+summary(arima_model)
+
+checkresiduals(arima_model)
+
+# forecast next 12 months
+forecast <- forecast(arima_model, h = 12)
+summary(forecast)
+
+plot(forecast, main = "Forecast for Next 12 Months", xlab = "Time", ylab = "gamma2")
+
+
+```
+
+
+ARIMA(p,d,q)(P,D,Q)[24] — to model daily seasonality
+
+
+
+Daily time series
+```{r}
+library(dplyr)
+library(lubridate)
+library(forecast)
+
+# Make sure timestamp column is POSIXct
+# Replace `your_timestamp_col` with your actual datetime column name
+data <- data %>%
+  mutate(datetime = as.POSIXct(time)) %>%
+  drop_na(gamma2)
+
+# Aggregate to daily (mean or sum depending on your use case)
+daily_data <- data %>%
+  mutate(date = as.Date(datetime)) %>%
+  group_by(date) %>%
+  summarise(gamma2 = mean(gamma2))  # or sum(gamma2)
+
+# Create time series object
+ts_daily <- ts(daily_data$gamma2, frequency = 7)  # Weekly seasonality, can adjust if needed
+
+# Decompose
+ts_decomp <- stl(ts_daily, s.window = "periodic")
+plot(ts_decomp)
+
+# Fit ARIMA on daily data
+arima_model <- auto.arima(ts_daily)
+
+summary(arima_model)
+checkresiduals(arima_model)
+
+# Forecast for the rest of the year (e.g., next 365 days)
+forecast_horizon <- 365
+forecast_result <- forecast(arima_model, h = forecast_horizon)
+
+plot(forecast_result, main = "Daily Forecast", xlab = "Day", ylab = "gamma2")
+
+
+```
+ARIMA(1,1,2)(1,0,2)[7]
+non seasonal part (1,1,2)
+AR = 1 autoregressive term
+I first-order differencing, stationary
+MA = 2 moving average terms
+seasonal part (1,0,2)[7]
+SAR = 1 seasonal autoregressive term
+SI no seasonal difference
+SMA 2 seasonal moving average terms
+seasonality every 7 days
+
+ME, forecasts slightly underestimating
+RMSE heavily penalizes large errors
+MAE average magnitude of the forecast errors
+MAPE pretty good, errors are small relative to actuals
+MASE <1 means its better than a naive forecast
+ACF1 (autocorrelation at lag 1) very close to 0 so residuals are basically white noise which is good
+
+Ljung-box test
+- tests whether residuals are uncorrelated
+- p-value not quite significant, so no strong evidence of autocorrelation in the residuals which is good
+***what does Q represent???
+
+
+forecast daily instead of hourly because takes long time to compute
+```{r}
+library(forecast)
+library(lubridate)
+
+gamma_column <- 'gamma2'
+
+
+# Convert gamma2 column to a daily time series (starting from 2008)
+gamma_ts <- ts(data[[gamma_column]], frequency = 365, start = c(2008, 1))
+
+# Fit Seasonal and Trend decomposition using LOESS + forecast
+# STLF combines STL decomposition with an ARIMA or ETS forecast on the seasonally adjusted series
+gamma_forecast_stlf <- stlf(gamma_ts, h = as.integer(as.Date("2025-03-26") - as.Date("2025-01-01")))
+
+# Summary of the forecast (includes point forecast, confidence intervals, etc.)
+summary(gamma_forecast_stlf)
+
+# Create date sequence matching forecast
+forecast_dates <- seq(as.Date("2025-01-01"), by = "day", length.out = length(gamma_forecast_stlf$mean))
+
+# Plot: forecast line only
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"))
+
+# Plot: with 95% confidence interval shaded
+plot(forecast_dates, gamma_forecast_stlf$mean, type = "l", col = "blue", 
+     xlab = "Date", ylab = paste("Forecast for", gamma_column), 
+     main = paste("Forecast for", gamma_column, "in 2025"),
+     ylim = range(c(gamma_forecast_stlf$lower[,2], gamma_forecast_stlf$upper[,2], gamma_forecast_stlf$mean)))
+
+polygon(c(forecast_dates, rev(forecast_dates)), 
+        c(gamma_forecast_stlf$lower[,2], rev(gamma_forecast_stlf$upper[,2])), 
+        col = rgb(1, 0, 0, 0.2), border = NA)  # shaded area for 95% CI
+
+lines(forecast_dates, gamma_forecast_stlf$mean, col = "blue", lwd = 2)
+
+legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
+       col = c("blue", rgb(1, 0, 0, 0.2)), lty = c(1, NA), lwd = c(2, NA), fill = c(NA, rgb(1, 0, 0, 0.2)))
+
+plot.ts(lincoln25$`GAMMA COUNT RATE R02 (CPM)`)
+
+```
+STFL (Seasonal and Trend Decomposition)
+- using LOESS, then forecasting
+
+STL Decomposition, splits time series into trend, seasonal, remainder(noise), 
+- good for daily data where seasonal patterns repeat
+
+deseasonalized forecast
+- remove seasonal component, remainder+trend is forecasted using ETS
+- after forecast, seasonal component added back to get final forecast
+
+
+***interpret summary of forecast
+alpha=0.999
+beta=0.3386
+phi = 0.8
+initial states?
+
+is there not a p-value in the summary of forecast? or only in arima model
+
+
+gamma 2 doesn't give very accurate prediction for beginning of 2025, dose was predicted well, but how do the other gamma channels predict
