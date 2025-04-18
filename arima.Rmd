@@ -55,6 +55,138 @@ plot(forecast, main = "Forecast for Next 12 Months", xlab = "Time", ylab = "gamm
 
 ```
 
+```{r}
+
+
+library(dplyr)
+library(lubridate)  
+
+daily_avg_2 <- data %>%
+  drop_na(gamma2) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma2 = mean(gamma2, na.rm = TRUE))
+
+plot.ts(daily_avg_2)
+
+plot(daily_avg_2$date_only, daily_avg_2$avg_gamma2)
+
+# gamma 3
+daily_avg_3 <- data %>%
+  drop_na(gamma3) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma3 = mean(gamma3, na.rm = TRUE))
+
+plot.ts(daily_avg_3)
+
+plot(daily_avg_3$date_only, daily_avg_3$avg_gamma3)
+
+# gamma 4
+daily_avg_4 <- data %>%
+  drop_na(gamma4) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma4 = mean(gamma4, na.rm = TRUE))
+
+plot.ts(daily_avg_4)
+
+plot(daily_avg_4$date_only, daily_avg_4$avg_gamma4)
+
+
+# gamma 5
+daily_avg_5 <- data %>%
+  drop_na(gamma5) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma5 = mean(gamma5, na.rm = TRUE))
+
+plot.ts(daily_avg_5)
+
+plot(daily_avg_5$date_only, daily_avg_5$avg_gamma5)
+
+
+# gamma 6
+daily_avg_6 <- data %>%
+  drop_na(gamma6) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma6 = mean(gamma6, na.rm = TRUE))
+
+plot.ts(daily_avg_6)
+
+plot(daily_avg_6$date_only, daily_avg_6$avg_gamma6)
+
+
+# gamma 7 
+daily_avg_7 <- data %>%
+  drop_na(gamma7) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma7 = mean(gamma7, na.rm = TRUE))
+
+plot.ts(daily_avg_7)
+
+plot(daily_avg_7$date_only, daily_avg_7$avg_gamma7)
+
+
+# gamma 8
+daily_avg_8 <- data %>%
+  drop_na(gamma8) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma8 = mean(gamma8, na.rm = TRUE))
+
+plot.ts(daily_avg_8)
+
+plot(daily_avg_8$date_only, daily_avg_8$avg_gamma8)
+
+
+# gamma 9
+daily_avg_9 <- data %>%
+  drop_na(gamma9) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_gamma9 = mean(gamma9, na.rm = TRUE))
+
+plot.ts(daily_avg_9)
+
+plot(daily_avg_9$date_only, daily_avg_9$avg_gamma9)
+
+
+# dose
+daily_avg_d <- data %>%
+  drop_na(doseEquivalent) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_dose = mean(doseEquivalent, na.rm = TRUE))
+
+plot.ts(daily_avg_d)
+
+plot(daily_avg_d$date_only, daily_avg_d$avg_dose)
+
+
+
+# gamma sum
+daily_avg_sum <- data %>%
+  drop_na(gammaSum) %>%
+  mutate(date_only = as.Date(time)) %>%  # replace 'datetime_column' with your actual column name
+  group_by(date_only) %>%
+  summarize(avg_sum = mean(gammaSum, na.rm = TRUE))
+
+plot.ts(daily_avg_sum)
+
+plot(daily_avg_sum$date_only, daily_avg_sum$avg_sum)
+
+
+
+
+
+
+
+```
+
+
 
 ARIMA(p,d,q)(P,D,Q)[24] — to model daily seasonality
 
@@ -128,7 +260,7 @@ forecast daily instead of hourly because takes long time to compute
 library(forecast)
 library(lubridate)
 
-gamma_column <- 'gamma2'
+gamma_column <- 'gammaSum'
 
 
 # Convert gamma2 column to a daily time series (starting from 2008)
@@ -166,6 +298,8 @@ legend("topleft", legend = c("Forecast", "95% Confidence Interval"),
 
 plot.ts(lincoln25$`GAMMA COUNT RATE R02 (CPM)`)
 
+
+
 ```
 STFL (Seasonal and Trend Decomposition)
 - using LOESS, then forecasting
@@ -188,3 +322,27 @@ is there not a p-value in the summary of forecast? or only in arima model
 
 
 gamma 2 doesn't give very accurate prediction for beginning of 2025, dose was predicted well, but how do the other gamma channels predict
+
+
+
+```{r}
+# lincoln 25 outliers
+
+no_outliers_25 <- subset(lincoln25, `GAMMA COUNT RATE R02 (CPM)` >1700 & `GAMMA COUNT RATE R02 (CPM)` <2000)
+
+ts.plot(no_outliers_25$`GAMMA COUNT RATE R02 (CPM)`)
+
+
+```
+
+
+```{r}
+un <- unique(lincoln25$`SAMPLE COLLECTION TIME`)
+
+for (day in un) {
+  day_av <- mean(lincoln25$`SAMPLE COLLECTION TIME`)
+}
+
+
+```
+
